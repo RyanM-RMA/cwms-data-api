@@ -7,10 +7,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.Assert.assertNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FormatsTest
 {
@@ -43,9 +40,7 @@ public class FormatsTest
 	@Test
 	public void testParseNullNull()
 	{
-		RuntimeException thrown = Assertions.assertThrows(FormattingException.class, () -> {
-			Formats.parseHeaderAndQueryParm(null, null);
-		});
+		assertThrows(FormattingException.class, () -> Formats.parseHeaderAndQueryParm(null, null));
 	}
 
 	@Test
@@ -76,7 +71,7 @@ public class FormatsTest
 
 	@Test
 	public void testParseHeaderAndQueryParmXML(){
-		RuntimeException thrown = Assertions.assertThrows(FormattingException.class, () -> {
+		RuntimeException thrown = assertThrows(FormattingException.class, () -> {
 			Formats.parseHeaderAndQueryParm(null, null);
 		});
 
@@ -102,7 +97,7 @@ public class FormatsTest
 
 	@Test
 	public void testParseBoth(){
-		RuntimeException thrown = Assertions.assertThrows(FormattingException.class, () -> {
+		RuntimeException thrown = assertThrows(FormattingException.class, () -> {
 			Formats.parseHeaderAndQueryParm("application/json", "json");
 		});
 
@@ -111,7 +106,7 @@ public class FormatsTest
 
 	@Test
 	public void testParseBothv2(){
-		RuntimeException thrown = Assertions.assertThrows(FormattingException.class, () -> {
+		RuntimeException thrown = assertThrows(FormattingException.class, () -> {
 			Formats.parseHeaderAndQueryParm("application/json;version=2", "json");
 		});
 
@@ -131,11 +126,9 @@ public class FormatsTest
 		assertNotNull(contentType);
 		assertEquals("application/json", contentType.getType());
 
-		contentType = Formats.parseHeader(null);
-		assertNull(contentType);
+		assertThrows(FormattingException.class, () -> Formats.parseHeader(null));
 
-		contentType = Formats.parseHeader("");
-		assertNull(contentType);
+		assertThrows(FormattingException.class, () -> Formats.parseHeader(""));
 
 	}
 
