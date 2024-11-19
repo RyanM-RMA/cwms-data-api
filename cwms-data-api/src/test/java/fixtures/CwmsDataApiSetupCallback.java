@@ -27,8 +27,6 @@ import io.restassured.RestAssured;
 import io.restassured.config.JsonConfig;
 import io.restassured.filter.log.LogDetail;
 import io.restassured.path.json.config.JsonPathConfig;
-import io.restassured.response.ValidatableResponse;
-
 import javax.servlet.http.HttpServletResponse;
 import org.testcontainers.images.PullPolicy;
 
@@ -167,7 +165,7 @@ public class CwmsDataApiSetupCallback implements BeforeAllCallback,AfterAllCallb
     private ArrayList<String> getDefaultList() {
         ArrayList<String> list = new ArrayList<>();
         InputStream listStream = getClass().getResourceAsStream("/cwms/cda/data/sql/defaultload.txt");
-        try( BufferedReader br = new BufferedReader( new InputStreamReader(listStream) );) {
+        try( BufferedReader br = new BufferedReader( new InputStreamReader(listStream) )) {
             String line = null;
             while( (line = br.readLine() ) != null){
                 if( line.trim().startsWith("#") ) continue;
