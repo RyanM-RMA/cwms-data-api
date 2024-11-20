@@ -51,11 +51,17 @@ import cwms.cda.data.dto.stream.Stream;
 import cwms.cda.data.dto.stream.StreamLocation;
 import cwms.cda.data.dto.stream.StreamNode;
 import cwms.cda.data.dto.stream.StreamReach;
+import cwms.cda.data.dto.watersupply.PumpLocation;
+import cwms.cda.data.dto.watersupply.PumpTransfer;
+import cwms.cda.data.dto.watersupply.WaterSupplyAccounting;
 import cwms.cda.data.dto.watersupply.WaterSupplyPump;
 import cwms.cda.data.dto.watersupply.WaterUser;
 import cwms.cda.data.dto.watersupply.WaterUserContract;
+
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.stream.IntStream;
@@ -362,6 +368,63 @@ public final class DTOMatch {
         assertMatch(first, second, DEFAULT_DELTA, message);
     }
 
+    public static void assertMatch(WaterSupplyAccounting first, WaterSupplyAccounting second) {
+        assertAll(
+            () -> assertEquals(first.getContractName(), second.getContractName()),
+            () -> assertMatch(first.getWaterUser(), second.getWaterUser()),
+            () -> assertMatch(first.getPumpAccounting(), second.getPumpAccounting()),
+            () -> assertMatch(first.getPumpLocations(), second.getPumpLocations())
+        );
+    }
+
+    public static void assertMatch(Map<Instant, List<PumpTransfer>> first, Map<Instant, List<PumpTransfer>> second) {
+        assertAll(
+            () -> assertEquals(first.size(), second.size(), "Pump accounting sizes do not match"),
+            () -> first.forEach((key, value) -> {
+                List<PumpTransfer> secondValue = second.get(key);
+                if (secondValue == null) {
+                    fail("Pump accounting key not found: " + key);
+                }
+                assertMatch(value, secondValue, DTOMatch::assertMatch);
+            })
+        );
+    }
+
+    public static void assertMatch(PumpLocation first, PumpLocation second) {
+        assertAll(
+            () -> {
+                if (first != null && second != null) {
+                    assertMatch(first.getPumpOut(), second.getPumpOut());
+                } else if (!(first == null && second == null)) {
+                    fail("Pump out locations do not match");
+                }
+            },
+            () -> {
+                if (first != null && second != null) {
+                    assertMatch(first.getPumpIn(), second.getPumpIn());
+                } else if (!(first == null && second == null)) {
+                    fail("Pump in locations do not match");
+                }
+            },
+            () -> {
+                if (first != null && second != null) {
+                    assertMatch(first.getPumpBelow(), second.getPumpBelow());
+                } else if (!(first == null && second == null)) {
+                    fail("Pump below locations do not match");
+                }
+            }
+        );
+    }
+
+    private static void assertMatch(PumpTransfer first, PumpTransfer second) {
+        assertAll(
+            () -> assertEquals(first.getTransferTypeDisplay(), second.getTransferTypeDisplay()),
+            () -> assertEquals(first.getFlow(), second.getFlow()),
+            () -> assertEquals(first.getComment(), second.getComment()),
+            () -> assertEquals(first.getPumpType(), second.getPumpType())
+        );
+    }
+
     public static <T extends CwmsDTOBase> void assertContainsDto(List<T> values, T expectedDto,
                                                                  BiPredicate<T, T> identifier,
                                                                  AssertMatchMethod<T> dtoMatcher,
@@ -505,7 +568,6 @@ public final class DTOMatch {
                 () -> assertEquals(first.getSpecifiedLevelId(), second.getSpecifiedLevelId(), "Specified level IDs do not match")
         );
     }
-
 
     @FunctionalInterface
     public interface AssertMatchMethod<T>{
