@@ -1,32 +1,32 @@
 {
-  "contract-name": "Sac. River Contract",
+  "contract-name": "Sac River",
   "water-user": {
-    "entity-name": "California Department of Water Resources",
+    "entity-name": "California DWR",
     "project-id": {
       "office-id": "SPK",
-      "name": "Sacramento River Delta"
+      "name": "Sacramento Delta"
     },
-    "water-right": "State of California Water Rights Permit #12345"
+    "water-right": "CA Water Rights Permit #12345"
   },
   "pump-locations": {
     "pump-in": {
       "office-id": "SPK",
-      "name": "Sacramento River Delta-Dam Water Pump 1"
+      "name": "Sac River-Pump 1"
     },
     "pump-out": {
       "office-id": "SPK",
-      "name": "Sacramento River Delta-Dam Water Pump 2"
+      "name": "Sac River-Pump 2"
     },
     "pump-below": {
       "office-id": "SPK",
-      "name": "Sacramento River Delta-Dam Water Pump 3"
+      "name": "Sac River-Pump 3"
     }
   },
   "pump-accounting": {
     "2022-11-20T21:17:28Z": [
       {
         "pump-type": "IN",
-        "transfer-type-display": "Pipeline",
+        "transfer-type-display": "Temporary Inlet",
         "flow": 1.0,
         "comment": "Added water to the system"
       },
@@ -38,12 +38,12 @@
       },
       {
         "pump-type": "BELOW",
-        "transfer-type-display": "River",
+        "transfer-type-display": "Pipeline",
         "flow": 3.0,
         "comment": "Daily water release"
       }
     ],
-    "2022-11-21T21:17:28Z": [
+    "2023-11-21T21:17:28Z": [
       {
         "pump-type": "IN",
         "transfer-type-display": "Pipeline",
@@ -58,12 +58,12 @@
       },
       {
         "pump-type": "BELOW",
-        "transfer-type-display": "River",
+        "transfer-type-display": "Pipeline",
         "flow": 6.0,
         "comment": "Water returned to the river"
       }
     ],
-    "2022-11-22T21:17:28Z": [
+    "2024-11-22T21:17:28Z": [
       {
         "pump-type": "IN",
         "transfer-type-display": "Pipeline",
@@ -78,10 +78,11 @@
       },
       {
         "pump-type": "BELOW",
-        "transfer-type-display": "River",
+        "transfer-type-display": "Pipeline",
         "flow": 9.0,
         "comment": "Water returned to the river"
       }
+
     ]
   }
 }
