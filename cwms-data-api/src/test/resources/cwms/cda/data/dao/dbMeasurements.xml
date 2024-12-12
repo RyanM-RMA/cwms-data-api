@@ -49,7 +49,7 @@
         <stream-flow-measurement>
             <gage-height>2.4</gage-height>
             <flow>200.0</flow>
-            <quality>G</quality>
+            <quality>Good</quality>
         </stream-flow-measurement>
         <usgs-measurement>
             <remarks>Some remarks2</remarks>

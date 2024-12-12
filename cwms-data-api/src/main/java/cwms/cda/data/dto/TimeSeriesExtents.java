@@ -1,3 +1,26 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2024 Hydrologic Engineering Center
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package cwms.cda.data.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -16,19 +39,11 @@ import java.time.ZonedDateTime;
 @Schema(description = "TimeSeries extent information")
 @JsonPropertyOrder(alphabetic = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
-public class TimeSeriesExtents {
+public class TimeSeriesExtents extends TimeExtents {
 
     @Schema(description = "TimeSeries version to which this extent information applies")
     @JsonFormat(shape = Shape.STRING)
     ZonedDateTime versionTime;
-
-    @Schema(description = "Earliest value in the timeseries")
-    @JsonFormat(shape = Shape.STRING)
-    ZonedDateTime earliestTime;
-
-    @Schema(description = "Latest value in the timeseries")
-    @JsonFormat(shape = Shape.STRING)
-    ZonedDateTime latestTime;
 
     @Schema(description = "Last update in the timeseries")
     @JsonFormat(shape = Shape.STRING)
@@ -36,13 +51,15 @@ public class TimeSeriesExtents {
 
     @SuppressWarnings("unused") // required so JAXB can initialize and marshal
     private TimeSeriesExtents() {
+        super(new Builder());
     }
 
     public TimeSeriesExtents(final ZonedDateTime versionTime, final ZonedDateTime earliestTime,
                              final ZonedDateTime latestTime, final ZonedDateTime lastUpdateTime) {
+        super(new TimeExtents.Builder()
+                .withEarliestTime(earliestTime)
+                .withLatestTime(latestTime));
         this.versionTime = versionTime;
-        this.earliestTime = earliestTime;
-        this.latestTime = latestTime;
         this.lastUpdate = lastUpdateTime;
     }
 
@@ -61,14 +78,6 @@ public class TimeSeriesExtents {
 
     public ZonedDateTime getVersionTime() {
         return this.versionTime;
-    }
-
-    public ZonedDateTime getEarliestTime() {
-        return this.earliestTime;
-    }
-
-    public ZonedDateTime getLatestTime() {
-        return this.latestTime;
     }
 
     public ZonedDateTime getLastUpdate() {

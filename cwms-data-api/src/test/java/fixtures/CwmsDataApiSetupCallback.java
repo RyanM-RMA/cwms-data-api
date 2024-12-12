@@ -13,7 +13,6 @@ import org.apache.catalina.Manager;
 import org.apache.commons.io.IOUtils;
 
 import mil.army.usace.hec.test.database.CwmsDatabaseContainer;
-import mil.army.usace.hec.test.database.CwmsDatabaseContainers;
 import mil.army.usace.hec.test.database.TeamCityUtilities;
 
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -55,7 +54,7 @@ public class CwmsDataApiSetupCallback implements BeforeAllCallback,AfterAllCallb
                           );
     static final String CWMS_DB_IMAGE =
         System.getProperty("CDA.cwms.database.image",
-                           "registry.hecdev.net/cwms/schema_installer:99.99.99.9-CDA_STAGING"
+                           "registry.hecdev.net/cwms/schema_installer:99.99.99.11-CDA_STAGING"
                           );
 
 

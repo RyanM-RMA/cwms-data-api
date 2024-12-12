@@ -220,7 +220,7 @@ final class MeasurementDaoTest {
                 .withStreamflowMeasurement(new StreamflowMeasurement.Builder()
                         .withFlow(200.0)
                         .withGageHeight(2.4)
-                        .withQuality("G")
+                        .withQuality("Good")
                         .build())
                 .withUsgsMeasurement(new UsgsMeasurement.Builder()
                         .withAirTemp(35.0)
