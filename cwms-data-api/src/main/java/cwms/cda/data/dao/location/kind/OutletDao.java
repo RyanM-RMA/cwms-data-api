@@ -90,7 +90,6 @@ public class OutletDao extends JooqDao<Outlet> {
             LOCATION_REF_T locRef = LocationUtil.getLocationRef(locationId, officeId);
             Configuration config = DSL.using(conn).configuration();
             PROJECT_STRUCTURE_OBJ_T outletStruct = CWMS_OUTLET_PACKAGE.call_RETRIEVE_OUTLET(config, locRef);
-            
             LocationGroupDao locGroupDao = new LocationGroupDao(dsl);
             List<LocationGroup> groups = locGroupDao.getLocationGroups(config, null, officeId, null,
                     Outlet.RATING_LOC_GROUP_CATEGORY, null);

@@ -30,6 +30,7 @@ import cwms.cda.data.dto.LocationGroup;
 import cwms.cda.data.dto.location.kind.Outlet;
 import cwms.cda.formatters.Formats;
 import fixtures.CwmsDataApiSetupCallback;
+import fixtures.FunctionalSchemas;
 import io.restassured.filter.log.LogDetail;
 import java.io.IOException;
 import javax.servlet.http.HttpServletResponse;
@@ -509,6 +510,7 @@ class OutletControllerTestIT extends BaseOutletDaoIT {
     }
 
     @Test
+    @FunctionalSchemas(values = {"latest-dev"})
     void test_outlet_get_all() {
         //Get the newly created outlet
         given()

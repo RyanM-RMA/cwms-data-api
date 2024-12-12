@@ -260,7 +260,8 @@ public class ApiServlet extends HttpServlet {
 
     // The VERSION should match the gradle version but not contain the patch version.
     // For example 2.4 not 2.4.13
-    public static final String VERSION = "3.0";
+    private static String VERSION;
+
     public static final String APPLICATION_TITLE = "CWMS Data API";
     public static final String PROVIDER_KEY_OLD = "radar.access.provider";
     public static final String PROVIDER_KEY = "cwms.dataapi.access.provider";
@@ -277,6 +278,9 @@ public class ApiServlet extends HttpServlet {
     @Resource(name = "jdbc/CWMS3")
     DataSource cwms;
 
+    public static String getApiVersion() {
+        return VERSION != null ? VERSION : "Not Yet Known";
+    }
 
 
     @Override
@@ -286,16 +290,21 @@ public class ApiServlet extends HttpServlet {
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        logger.atInfo().log("Initializing CWMS Data API Version:  " + obtainFullVersion(config));
+        if (VERSION == null) {
+            ApiServlet.VERSION = obtainFullVersion(config);
+        }
+        logger.atInfo().log("Initializing CWMS Data API Version:  " + VERSION);
         metrics = (MetricRegistry)config.getServletContext()
                 .getAttribute(MetricsServlet.METRICS_REGISTRY);
         totalRequests = metrics.meter("cwms.dataapi.total_requests");
+        
         super.init(config);
     }
 
     @SuppressWarnings({"java:S125","java:S2095"}) // closed in destroy handler
     @Override
     public void init() {
+        logger.atInfo().log("Initializing Javalin.");
         JavalinValidation.register(UnitSystem.class, UnitSystem::systemFor);
         JavalinValidation.register(JooqDao.DeleteMethod.class, Controllers::getDeleteMethod);
 
@@ -843,7 +852,7 @@ public class ApiServlet extends HttpServlet {
     }
 
     private void getOpenApiOptions(JavalinConfig config) {
-        Info applicationInfo = new Info().title(APPLICATION_TITLE).version(VERSION)
+        Info applicationInfo = new Info().title(APPLICATION_TITLE).version(ApiServlet.getApiVersion())
                 .description("CWMS REST API for Data Retrieval");
 
         String provider = getAccessManagerName();

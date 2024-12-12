@@ -13,6 +13,7 @@ import org.apache.catalina.Manager;
 import org.apache.commons.io.IOUtils;
 
 import mil.army.usace.hec.test.database.CwmsDatabaseContainer;
+import mil.army.usace.hec.test.database.CwmsDatabaseContainers;
 import mil.army.usace.hec.test.database.TeamCityUtilities;
 
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import com.google.common.flogger.FluentLogger;
 
+import cwms.cda.data.dao.Dao;
 import fixtures.tomcat.SingleSignOnWrapper;
 import helpers.TsRandomSampler;
 import io.restassured.RestAssured;
@@ -43,12 +45,65 @@ public class CwmsDataApiSetupCallback implements BeforeAllCallback,AfterAllCallb
     private static TomcatServer cdaInstance;
     private static CwmsDatabaseContainer<?> cwmsDb;
 
-    private static final String ORACLE_IMAGE = System.getProperty("CDA.oracle.database.image",System.getProperty("RADAR.oracle.database.image", CwmsDatabaseContainer.ORACLE_19C));
-    private static final String ORACLE_VOLUME = System.getProperty("CDA.oracle.database.volume",System.getProperty("RADAR.oracle.database.volume", "cwmsdb_data_api_volume"));
-    static final String CWMS_DB_IMAGE = System.getProperty("CDA.cwms.database.image",System.getProperty("RADAR.cwms.database.image", "registry.hecdev.net/cwms/schema_installer:99.99.99.9-CDA_STAGING"));
+    private static final String ORACLE_IMAGE =
+        System.getProperty("CDA.oracle.database.image",
+                           "registry-public.hecdev.net/cwms/database-ready-ora-23.5:latest-dev"
+                       );
+    private static final String ORACLE_VOLUME =
+        System.getProperty("CDA.oracle.database.volume",
+                           "cwmsdb_data_api_volume"
+                          );
+    static final String CWMS_DB_IMAGE =
+        System.getProperty("CDA.cwms.database.image",
+                           "registry.hecdev.net/cwms/schema_installer:99.99.99.9-CDA_STAGING"
+                          );
 
 
     private static String webUser = null;
+
+    public static final String VERSION_STRING;
+    public static final int VERSION_INT;
+
+    static
+    {
+        VERSION_STRING = schemaVersion();
+        VERSION_INT = versionInt();
+    }
+
+    private static String schemaVersion()
+    {
+        String ret = "Unknown";
+        if (!System.getProperty(CwmsDatabaseContainers.BYPASS_URL,"").isEmpty())
+        {
+            ret = "Bypass";
+        }
+        else if (ORACLE_IMAGE.contains("database-ready"))
+        {
+            ret = ORACLE_IMAGE.split(":")[1];
+        }
+        else
+        {
+            ret = CWMS_DB_IMAGE.split(":")[1];
+        }
+        return ret;
+    }
+
+    private static int versionInt()
+    {
+        int ret = -999999;
+        String tmp = schemaVersion();
+        if (tmp.equalsIgnoreCase("latest-dev")) {
+            ret = 999999;
+        }
+        else if(tmp.toLowerCase().endsWith("staging")) {
+            ret = 1009999;
+        }
+        else
+        {
+            ret = Dao.versionAsInteger(tmp);
+        }
+        return ret;
+    }
 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
@@ -59,17 +114,16 @@ public class CwmsDataApiSetupCallback implements BeforeAllCallback,AfterAllCallb
 
     @Override
     @SuppressWarnings("unchecked")
-    public void beforeAll(ExtensionContext context) throws Exception {        
+    public void beforeAll(ExtensionContext context) throws Exception {
         if (cdaInstance == null ) {
-            cwmsDb = new CwmsDatabaseContainer(ORACLE_IMAGE)
+            cwmsDb = CwmsDatabaseContainers.createDatabaseContainer(ORACLE_IMAGE)
                             .withOfficeEroc("s0")
                             .withOfficeId("HQ")
                             .withVolumeName(TeamCityUtilities.cleanupBranchName(ORACLE_VOLUME))
                             .withSchemaImage(CWMS_DB_IMAGE);
-            cwmsDb.withImagePullPolicy(PullPolicy.alwaysPull());
+            cwmsDb.withImagePullPolicy(PullPolicy.defaultPolicy());
             cwmsDb.start();
 
-           
             final String jdbcUrl = cwmsDb.getJdbcUrl();
             webUser = cwmsDb.getPdUser().substring(0,2)+"webtest";
             final String pw = cwmsDb.getPassword();
