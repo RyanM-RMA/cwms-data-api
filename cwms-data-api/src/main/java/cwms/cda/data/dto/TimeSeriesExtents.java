@@ -25,9 +25,9 @@ package cwms.cda.data.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonFormat.Shape;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.annotation.JsonRootName;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -35,53 +35,64 @@ import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
-@JsonRootName("extents")
-@Schema(description = "TimeSeries extent information")
-@JsonPropertyOrder(alphabetic = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonDeserialize(builder = TimeSeriesExtents.Builder.class)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
+@Schema(description = "TimeSeries extent information")
 public class TimeSeriesExtents extends TimeExtents {
 
     @Schema(description = "TimeSeries version to which this extent information applies")
     @JsonFormat(shape = Shape.STRING)
-    ZonedDateTime versionTime;
+    private final ZonedDateTime versionTime;
 
     @Schema(description = "Last update in the timeseries")
     @JsonFormat(shape = Shape.STRING)
-    ZonedDateTime lastUpdate;
+    private final ZonedDateTime lastUpdate;
 
-    @SuppressWarnings("unused") // required so JAXB can initialize and marshal
-    private TimeSeriesExtents() {
-        super(new Builder());
-    }
-
-    public TimeSeriesExtents(final ZonedDateTime versionTime, final ZonedDateTime earliestTime,
-                             final ZonedDateTime latestTime, final ZonedDateTime lastUpdateTime) {
-        super(new TimeExtents.Builder()
-                .withEarliestTime(earliestTime)
-                .withLatestTime(latestTime));
-        this.versionTime = versionTime;
-        this.lastUpdate = lastUpdateTime;
-    }
-
-    public TimeSeriesExtents(final Timestamp versionTime, final Timestamp earliestTime,
-                             final Timestamp latestTime, final Timestamp lastUpdateTime) {
-        this(toZdt(versionTime), toZdt(earliestTime), toZdt(latestTime), toZdt(lastUpdateTime));
-    }
-
-    private static ZonedDateTime toZdt(final Timestamp time) {
-        if (time != null) {
-            return ZonedDateTime.ofInstant(time.toInstant(), ZoneId.of("UTC"));
-        } else {
-            return null;
-        }
+    private TimeSeriesExtents(Builder builder) {
+        super(builder);
+        this.versionTime = builder.versionTime;
+        this.lastUpdate = builder.lastUpdate;
     }
 
     public ZonedDateTime getVersionTime() {
-        return this.versionTime;
+        return versionTime;
     }
 
     public ZonedDateTime getLastUpdate() {
-        return this.lastUpdate;
+        return lastUpdate;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder extends TimeExtents.Builder {
+        private ZonedDateTime versionTime;
+        private ZonedDateTime lastUpdate;
+
+        @Override
+        public Builder withLatestTime(ZonedDateTime end) {
+            return (Builder) super.withLatestTime(end);
+        }
+
+        @Override
+        public Builder withEarliestTime(ZonedDateTime start) {
+            return (Builder) super.withEarliestTime(start);
+        }
+
+        public Builder withVersionTime(ZonedDateTime versionTime) {
+            this.versionTime = versionTime;
+            return this;
+        }
+
+        public Builder withLastUpdate(ZonedDateTime lastUpdate) {
+            this.lastUpdate = lastUpdate;
+            return this;
+        }
+
+        public TimeSeriesExtents build() {
+            return new TimeSeriesExtents(this);
+        }
+    }
 }

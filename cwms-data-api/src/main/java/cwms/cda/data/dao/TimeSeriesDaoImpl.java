@@ -1,5 +1,6 @@
 package cwms.cda.data.dao;
 
+import cwms.cda.helpers.DateUtils;
 import static org.jooq.impl.DSL.asterisk;
 import static org.jooq.impl.DSL.countDistinct;
 import static org.jooq.impl.DSL.field;
@@ -557,12 +558,12 @@ public class TimeSeriesDaoImpl extends JooqDao<TimeSeries> implements TimeSeries
             }
 
             if (params.isIncludeExtents()) {
-                TimeSeriesExtents extents =
-                        new TimeSeriesExtents(row.get(AV_TS_EXTENTS_UTC.VERSION_TIME),
-                                row.get(AV_TS_EXTENTS_UTC.EARLIEST_TIME),
-                                row.get(AV_TS_EXTENTS_UTC.LATEST_TIME),
-                                row.get(AV_TS_EXTENTS_UTC.LAST_UPDATE)
-                        );
+                TimeSeriesExtents extents = new TimeSeriesExtents.Builder()
+                        .withEarliestTime(DateUtils.toZdt(row.get(AV_TS_EXTENTS_UTC.EARLIEST_TIME)))
+                        .withLatestTime(DateUtils.toZdt(row.get(AV_TS_EXTENTS_UTC.LATEST_TIME)))
+                        .withLastUpdate(DateUtils.toZdt(row.get(AV_TS_EXTENTS_UTC.LAST_UPDATE)))
+                        .withVersionTime(DateUtils.toZdt(row.get(AV_TS_EXTENTS_UTC.VERSION_TIME)))
+                        .build();
                 tsIdExtentMap.get(officeTsId).withExtent(extents);
             }
         });

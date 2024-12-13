@@ -130,14 +130,8 @@ public abstract class JooqDao<T> extends Dao<T> {
         return retVal;
     }
 
-    protected static Timestamp buildTimestamp(Instant date)
-    {
-        Timestamp retval = null;
-        if(date != null)
-        {
-            retval = Timestamp.from(date);
-        }
-        return retval;
+protected static Timestamp buildTimestamp(Instant date) {
+        return date != null ? Timestamp.from(date) : null;
     }
 
     public static DSLContext getDslContext(Connection connection, String officeId) {

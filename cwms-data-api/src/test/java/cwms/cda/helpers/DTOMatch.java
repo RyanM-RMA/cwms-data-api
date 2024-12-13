@@ -26,6 +26,7 @@ package cwms.cda.helpers;
 
 import cwms.cda.data.dto.CwmsIdTimeExtentsEntry;
 import cwms.cda.data.dto.TimeExtents;
+import cwms.cda.data.dto.TimeSeriesExtents;
 import cwms.cda.data.dto.location.kind.Lock;
 import cwms.cda.data.dto.CwmsDTOBase;
 import cwms.cda.data.dto.location.kind.GateChange;
@@ -574,6 +575,15 @@ public final class DTOMatch {
                 () -> assertEquals(first.getLevelValue(), second.getLevelValue(), DEFAULT_DELTA, "Level value does not match"),
                 () -> assertEquals(first.getLevelId(), second.getLevelId(), "Level IDs do not match"),
                 () -> assertEquals(first.getSpecifiedLevelId(), second.getSpecifiedLevelId(), "Specified level IDs do not match")
+        );
+    }
+
+    public static void assertMatch(TimeSeriesExtents first, TimeSeriesExtents second) {
+        assertAll(
+            () -> assertEquals(first.getLastUpdate(), second.getLastUpdate(), "Last Update time does not match"),
+            () -> assertEquals(first.getVersionTime(), second.getVersionTime(), "Version time does not match"),
+            () -> assertEquals(first.getEarliestTime(), second.getEarliestTime(), "Earliest time does not match"),
+            () -> assertEquals(first.getLatestTime(), second.getLatestTime(), "Latest time does not match")
         );
     }
 

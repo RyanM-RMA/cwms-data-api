@@ -25,7 +25,9 @@ package cwms.cda.data.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonFormat.Shape;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -51,7 +53,7 @@ public class TimeExtents extends CwmsDTOBase {
     @JsonFormat(shape = Shape.STRING)
     private final ZonedDateTime latestTime;
 
-    public TimeExtents(Builder builder) {
+    TimeExtents(Builder builder) {
         this.earliestTime = builder.earliestTime;
         this.latestTime = builder.latestTime;
     }
@@ -68,12 +70,12 @@ public class TimeExtents extends CwmsDTOBase {
         private ZonedDateTime earliestTime;
         private ZonedDateTime latestTime;
 
-        public TimeExtents.Builder withEarliestTime(ZonedDateTime start) {
+        public Builder withEarliestTime(ZonedDateTime start) {
             this.earliestTime = start;
             return this;
         }
 
-        public TimeExtents.Builder withLatestTime(ZonedDateTime end) {
+        public Builder withLatestTime(ZonedDateTime end) {
             this.latestTime = end;
             return this;
         }
