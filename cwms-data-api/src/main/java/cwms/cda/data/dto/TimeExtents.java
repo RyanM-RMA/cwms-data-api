@@ -25,74 +25,64 @@ package cwms.cda.data.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonFormat.Shape;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import cwms.cda.formatters.Formats;
+import cwms.cda.formatters.annotations.FormattableWith;
+import cwms.cda.formatters.json.JsonV1;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.sql.Timestamp;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
+@FormattableWith(contentType = Formats.JSONV1, formatter = JsonV1.class, aliases = {Formats.DEFAULT, Formats.JSON})
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonDeserialize(builder = TimeSeriesExtents.Builder.class)
+@JsonDeserialize(builder = TimeExtents.Builder.class)
+@Schema(description = "Represents the start and end times of an extent")
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
-@Schema(description = "TimeSeries extent information")
-public class TimeSeriesExtents extends TimeExtents {
+public class TimeExtents extends CwmsDTOBase {
 
-    @Schema(description = "TimeSeries version to which this extent information applies")
+    @Schema(description = "Earliest value in the timeseries")
     @JsonFormat(shape = Shape.STRING)
-    private final ZonedDateTime versionTime;
+    private final ZonedDateTime earliestTime;
 
-    @Schema(description = "Last update in the timeseries")
+    @Schema(description = "Latest value in the timeseries")
     @JsonFormat(shape = Shape.STRING)
-    private final ZonedDateTime lastUpdate;
+    private final ZonedDateTime latestTime;
 
-    private TimeSeriesExtents(Builder builder) {
-        super(builder);
-        this.versionTime = builder.versionTime;
-        this.lastUpdate = builder.lastUpdate;
+    TimeExtents(Builder builder) {
+        this.earliestTime = builder.earliestTime;
+        this.latestTime = builder.latestTime;
     }
 
-    public ZonedDateTime getVersionTime() {
-        return versionTime;
+    public ZonedDateTime getEarliestTime() {
+        return this.earliestTime;
     }
 
-    public ZonedDateTime getLastUpdate() {
-        return lastUpdate;
+    public ZonedDateTime getLatestTime() {
+        return this.latestTime;
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
+    public static class Builder {
+        private ZonedDateTime earliestTime;
+        private ZonedDateTime latestTime;
 
-    public static class Builder extends TimeExtents.Builder {
-        private ZonedDateTime versionTime;
-        private ZonedDateTime lastUpdate;
-
-        @Override
-        public Builder withLatestTime(ZonedDateTime end) {
-            return (Builder) super.withLatestTime(end);
-        }
-
-        @Override
         public Builder withEarliestTime(ZonedDateTime start) {
-            return (Builder) super.withEarliestTime(start);
-        }
-
-        public Builder withVersionTime(ZonedDateTime versionTime) {
-            this.versionTime = versionTime;
+            this.earliestTime = start;
             return this;
         }
 
-        public Builder withLastUpdate(ZonedDateTime lastUpdate) {
-            this.lastUpdate = lastUpdate;
+        public Builder withLatestTime(ZonedDateTime end) {
+            this.latestTime = end;
             return this;
         }
 
-        public TimeSeriesExtents build() {
-            return new TimeSeriesExtents(this);
+        public TimeExtents build() {
+            return new TimeExtents(this);
         }
     }
 }
+

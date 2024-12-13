@@ -5,6 +5,7 @@ import cwms.cda.api.enums.UnitSystem;
 import cwms.cda.api.errors.NotFoundException;
 import static cwms.cda.data.dao.DaoTest.getDslContext;
 import cwms.cda.data.dto.CwmsId;
+import cwms.cda.data.dto.CwmsIdTimeExtentsEntry;
 import cwms.cda.data.dto.measurement.Measurement;
 import cwms.cda.data.dto.measurement.StreamflowMeasurement;
 import cwms.cda.data.dto.measurement.SupplementalStreamflowMeasurement;
@@ -23,8 +24,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 import mil.army.usace.hec.test.database.CwmsDatabaseContainer;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.Record4;
+import org.jooq.SelectConditionStep;
+import org.jooq.Table;
+import org.jooq.impl.DSL;
+import static org.jooq.impl.DSL.inline;
 import org.junit.jupiter.api.AfterAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeAll;
@@ -54,6 +63,61 @@ public final class MeasurementDaoTestIT extends DataApiTestIT {
             } catch (Exception e) {
                 //ignore if already exists
             }
+        }
+        copyAtDisplayUnitsWithUpdatedOfficeCode(OFFICE_ID);
+    }
+
+    public static void copyAtDisplayUnitsWithUpdatedOfficeCode(String officeId) {
+        try {
+            CwmsDatabaseContainer<?> db = CwmsDataApiSetupCallback.getDatabaseLink();
+            db.connection((c) -> {
+                DSLContext dsl = DSL.using(c); // Create the JOOQ DSLContext from the connection
+
+                // Define the table and fields for AT_DISPLAY_UNITS
+                Table<Record> AT_DISPLAY_UNITS = DSL.table("AT_DISPLAY_UNITS");
+                Field<Integer> OFFICE_CODE = DSL.field("office_code", Integer.class);
+                Field<Integer> DB_OFFICE_CODE = DSL.field("db_office_code", Integer.class);
+                Field<Integer> PARAMETER_CODE = DSL.field("parameter_code", Integer.class);
+                Field<String> UNIT_SYSTEM = DSL.field("unit_system", String.class);
+                Field<Integer> DISPLAY_UNIT_CODE = DSL.field("display_unit_code", Integer.class);
+
+                // Fetch the db_office_code for the officeId
+                Integer cwmsDbOfficeCode = dsl.select(OFFICE_CODE)
+                        .from(DSL.table("CWMS_OFFICE"))
+                        .where(DSL.field("office_id", String.class).eq(officeId))
+                        .fetchOne(OFFICE_CODE);
+
+                if (cwmsDbOfficeCode == null) {
+                    throw new IllegalArgumentException("No db_office_code found for office_id: " + officeId);
+                }
+
+                // Check if the db_office_code already exists in AT_DISPLAY_UNITS
+                boolean codeExists = dsl.fetchExists(
+                        dsl.selectOne()
+                                .from(AT_DISPLAY_UNITS)
+                                .where(DB_OFFICE_CODE.eq(cwmsDbOfficeCode))
+                );
+
+                if (!codeExists) {
+                    // Construct a new SELECT query with the updated db_office_code
+                    SelectConditionStep<Record4<Integer, Integer, String, Integer>> selectQuery = dsl.selectDistinct(
+                                    inline(cwmsDbOfficeCode).as(DB_OFFICE_CODE.getName()),
+                                    PARAMETER_CODE,
+                                    UNIT_SYSTEM,
+                                    DISPLAY_UNIT_CODE
+                            )
+                            .from(AT_DISPLAY_UNITS)
+                            .where(DB_OFFICE_CODE.ne(cwmsDbOfficeCode)); // Exclude rows already with the target db_office_code
+
+                    // Insert rows into AT_DISPLAY_UNITS with updated db_office_code
+                    dsl.insertInto(AT_DISPLAY_UNITS)
+                            .columns(DB_OFFICE_CODE, PARAMETER_CODE, UNIT_SYSTEM, DISPLAY_UNIT_CODE)
+                            .select(selectQuery)
+                            .execute();
+                }
+            }, "cwms_20");
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
         }
     }
 
@@ -151,6 +215,16 @@ public final class MeasurementDaoTestIT extends DataApiTestIT {
                 assertNotNull(retrievedMeas1B);
                 DTOMatch.assertMatch(meas1B, retrievedMeas1B);
 
+                List<CwmsIdTimeExtentsEntry> timeExtents = measurementDao.retrieveMeasurementTimeExtentsMap(OFFICE_ID);
+                assertFalse(timeExtents.isEmpty());
+                CwmsIdTimeExtentsEntry extentsFound = timeExtents.stream()
+                        .filter(te -> te.getId().getName().equals(meas1.getId().getName()) && te.getId().getOfficeId().equals(meas1.getId().getOfficeId()))
+                        .findFirst()
+                        .orElse(null);
+                assertNotNull(extentsFound);
+                assertEquals(meas1.getInstant(), extentsFound.getTimeExtents().getEarliestTime().toInstant());
+                assertEquals(meas1B.getInstant(), extentsFound.getTimeExtents().getLatestTime().toInstant());
+
                 //delete measurements
                 measurementDao.deleteMeasurements(meas1.getId().getOfficeId(), meas1.getId().getName(), null, null, null, null);
                 measurementDao.deleteMeasurements(meas2.getId().getOfficeId(), meas2.getId().getName(), null, null, null, null);
@@ -201,7 +275,7 @@ public final class MeasurementDaoTestIT extends DataApiTestIT {
                 .withStreamflowMeasurement(new StreamflowMeasurement.Builder()
                         .withFlow(flow)
                         .withGageHeight(2.0)
-                        .withQuality("G")
+                        .withQuality("Good")
                         .build())
                 .withUsgsMeasurement(new UsgsMeasurement.Builder()
                         .withAirTemp(11.0)
@@ -258,7 +332,7 @@ public final class MeasurementDaoTestIT extends DataApiTestIT {
                 .withStreamflowMeasurement(new StreamflowMeasurement.Builder()
                         .withFlow(flow)
                         .withGageHeight(4.0)
-                        .withQuality("G")
+                        .withQuality("Good")
                         .build())
                 .withUsgsMeasurement(new UsgsMeasurement.Builder()
                         .withAirTemp(26.0)

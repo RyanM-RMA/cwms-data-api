@@ -28,6 +28,7 @@ import cwms.cda.api.enums.UnitSystem;
 import static cwms.cda.data.dao.DaoTest.getDslContext;
 import cwms.cda.data.dao.DeleteRule;
 import cwms.cda.data.dao.MeasurementDao;
+import cwms.cda.data.dao.MeasurementDaoTestIT;
 import static cwms.cda.data.dao.MeasurementDaoTestIT.MINIMUM_SCHEMA;
 import cwms.cda.data.dao.StreamDao;
 import cwms.cda.data.dto.CwmsId;
@@ -73,6 +74,7 @@ final class MeasurementControllerTestIT extends DataApiTestIT {
         createLocation(testLoc, true, OFFICE_ID, "STREAM_LOCATION");
         TEST_STREAM_LOC_IDS.add(testLoc);
         createAndStoreTestStream("ImOnThisStream2");
+        MeasurementDaoTestIT.copyAtDisplayUnitsWithUpdatedOfficeCode(OFFICE_ID);
     }
 
     static void createAndStoreTestStream(String testLoc) throws SQLException {
@@ -376,6 +378,25 @@ final class MeasurementControllerTestIT extends DataApiTestIT {
                 .body("[1].usgs-measurement.delta-time", equalTo(measurement2.getUsgsMeasurement().getDeltaTime().floatValue()))
                 .body("[1].usgs-measurement.air-temp", equalTo(measurement2.getUsgsMeasurement().getAirTemp().floatValue()))
                 .body("[1].usgs-measurement.water-temp", equalTo(measurement2.getUsgsMeasurement().getWaterTemp().floatValue()));
+
+        // Retrieve the Measurements Extents and assert that they exists
+        given()
+                .log().ifValidationFails(LogDetail.ALL, true)
+                .accept(Formats.JSON)
+                .queryParam(Controllers.OFFICE_MASK, measurement1.getId().getOfficeId())
+        .when()
+                .redirects().follow(true)
+                .redirects().max(3)
+                .get("/measurements/time-extents")
+        .then()
+                .log().ifValidationFails(LogDetail.ALL, true)
+        .assertThat()
+                .statusCode(is(HttpServletResponse.SC_OK))
+                //measurement1 and measurement2 share the same location id, so the time-extents should cover measurement1 and measurement2
+                .body("find { it.id.name == '" + measurement1.getLocationId() + "' }.id.name", equalTo(measurement1.getLocationId()))
+                .body("find { it.id.name == '" + measurement1.getLocationId() + "' }.id.office-id", equalTo(measurement1.getOfficeId()))
+                .body("find { it.id.name == '" + measurement1.getLocationId() + "' }.time-extents.earliest-time", equalTo(measurement1.getInstant().toString()))
+                .body("find { it.id.name == '" + measurement1.getLocationId() + "' }.time-extents.latest-time", equalTo(measurement2.getInstant().toString()));
 
         // Delete the Measurements
         given()

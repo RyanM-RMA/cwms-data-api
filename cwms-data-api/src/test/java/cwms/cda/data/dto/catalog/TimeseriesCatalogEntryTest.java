@@ -109,10 +109,11 @@ class TimeseriesCatalogEntryTest
 				.units("m")
 				.interval("0").intervalOffset(-2147483648L)
 				.timeZone("US/Central")
-				.withExtent(new TimeSeriesExtents(null,
-				                                  ZonedDateTime.parse("2017-07-27T05:00:00Z"),
-				                                  ZonedDateTime.parse("2017-11-24T22:30:00Z"),
-						ZonedDateTime.parse("2017-11-24T22:30:00Z")));
+				.withExtent(new TimeSeriesExtents.Builder()
+						.withEarliestTime(ZonedDateTime.parse("2017-07-27T05:00:00Z"))
+						.withLatestTime(ZonedDateTime.parse("2017-11-24T22:30:00Z"))
+						.withLastUpdate(ZonedDateTime.parse("2017-11-24T22:30:00Z"))
+						.build());
 		return builder
 				.build();
 

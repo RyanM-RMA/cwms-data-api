@@ -46,6 +46,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import cwms.cda.api.enums.UnitSystem;
 import cwms.cda.api.errors.NotFoundException;
 import cwms.cda.data.dto.CwmsId;
+import cwms.cda.data.dto.CwmsIdTimeExtentsEntry;
+import cwms.cda.data.dto.TimeExtents;
 import cwms.cda.data.dto.measurement.Measurement;
 import cwms.cda.data.dto.measurement.StreamflowMeasurement;
 import cwms.cda.data.dto.measurement.SupplementalStreamflowMeasurement;
@@ -56,11 +58,11 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.TimeZone;
+import java.util.Optional;
 import mil.army.usace.hec.metadata.location.LocationTemplate;
 import org.jooq.DSLContext;
 
@@ -68,12 +70,16 @@ import java.util.List;
 
 import static java.util.stream.Collectors.toList;
 import org.jooq.impl.DSL;
-import usace.cwms.db.dao.util.OracleTypeMap;
+import static org.jooq.impl.DSL.max;
+import static org.jooq.impl.DSL.min;
 import usace.cwms.db.jooq.codegen.packages.CWMS_STREAM_PACKAGE;
+import usace.cwms.db.jooq.codegen.tables.AV_STREAMFLOW_MEAS;
 import usace.cwms.db.jooq.codegen.udt.records.STREAMFLOW_MEAS2_T;
-import usace.cwms.db.jooq.codegen.udt.records.STREAMFLOW_MEAS2_TAB_T;
 
 public final class MeasurementDao extends JooqDao<Measurement> {
+
+    static final String MIN_DATE = "MIN_DATE";
+    static final String MAX_DATE = "MAX_DATE";
     static final XmlMapper XML_MAPPER = buildXmlMapper();
 
     public MeasurementDao(DSLContext dsl) {
@@ -93,19 +99,16 @@ public final class MeasurementDao extends JooqDao<Measurement> {
                                                   String agencies, String qualities) {
         return connectionResult(dsl, conn -> {
             setOffice(conn, officeId);
-            Timestamp minTimestamp = OracleTypeMap.buildTimestamp(minDateMask == null ? null : Date.from(minDateMask));
-            Timestamp maxTimestamp = OracleTypeMap.buildTimestamp(maxDateMask == null ? null : Date.from(maxDateMask));
-            TimeZone timeZone = OracleTypeMap.GMT_TIME_ZONE;
-            return retrieveMeasurementsJooq(conn, officeId, locationId, unitSystem, minHeight, maxHeight, minFlow, maxFlow, minNum, maxNum, agencies, qualities, minTimestamp, maxTimestamp, timeZone);
+            Timestamp minTimestamp = buildTimestamp(minDateMask);
+            Timestamp maxTimestamp = buildTimestamp(maxDateMask);
+            return retrieveMeasurementsJooq(conn, officeId, locationId, unitSystem, minHeight, maxHeight, minFlow, maxFlow, minNum, maxNum, agencies, qualities, minTimestamp, maxTimestamp);
         });
     }
 
-    private static List<Measurement> retrieveMeasurementsJooq(Connection conn, String officeId, String locationId, String unitSystem, Number minHeight, Number maxHeight, Number minFlow, Number maxFlow, String minNum, String maxNum, String agencies, String qualities, Timestamp minTimestamp, Timestamp maxTimestamp, TimeZone timeZone) {
-        STREAMFLOW_MEAS2_TAB_T retrieved = CWMS_STREAM_PACKAGE.call_RETRIEVE_MEAS_OBJS(DSL.using(conn).configuration(), locationId, unitSystem, minTimestamp, maxTimestamp,
-                minHeight, maxHeight, minFlow, maxFlow, minNum, maxNum, agencies, qualities, timeZone.getID(), officeId);
-        List<Measurement> retVal = retrieved.stream()
-                .map(MeasurementDao::fromJooqMeasurementRecord)
-                .collect(toList());
+    private static List<Measurement> retrieveMeasurementsJooq(Connection conn, String officeId, String locationId, String unitSystem, Number minHeight, Number maxHeight, Number minFlow, Number maxFlow, String minNum, String maxNum, String agencies, String qualities, Timestamp minTimestamp, Timestamp maxTimestamp) throws JsonProcessingException {
+        String xml = CWMS_STREAM_PACKAGE.call_RETRIEVE_MEAS_XML(DSL.using(conn).configuration(), locationId, unitSystem, minTimestamp, maxTimestamp,
+                minHeight, maxHeight, minFlow, maxFlow, minNum, maxNum, agencies, qualities, "UTC", officeId);
+        List<Measurement> retVal = fromDbXml(xml);
         if(retVal.isEmpty()) {
             throw new NotFoundException("No measurements found.");
         }
@@ -142,22 +145,53 @@ public final class MeasurementDao extends JooqDao<Measurement> {
                                    String maxNum) {
         connection(dsl, conn -> {
             setOffice(conn, officeId);
-            Timestamp minTimestamp = OracleTypeMap.buildTimestamp(minDateMask == null ? null : Date.from(minDateMask));
-            Timestamp maxTimestamp = OracleTypeMap.buildTimestamp(maxDateMask == null ? null : Date.from(maxDateMask));
-            TimeZone timeZone = OracleTypeMap.GMT_TIME_ZONE;
-            String timeZoneId = timeZone.getID();
+            Timestamp minTimestamp = buildTimestamp(minDateMask);
+            Timestamp maxTimestamp = buildTimestamp(maxDateMask);
+            String timeZoneId = "UTC";
             verifyMeasurementsExists(conn, officeId, locationId, maxNum, maxNum);
             CWMS_STREAM_PACKAGE.call_DELETE_STREAMFLOW_MEAS(DSL.using(conn).configuration(), locationId, minNum, minTimestamp, maxTimestamp,
                     null, null, null, null, maxNum, maxNum, null, null, timeZoneId, officeId);
         });
     }
 
-    private void verifyMeasurementsExists(Connection conn, String officeId, String locationId, String minNum, String maxNum) {
+    public List<CwmsIdTimeExtentsEntry> retrieveMeasurementTimeExtentsMap(String officeIdMask)
+    {
+        AV_STREAMFLOW_MEAS view = AV_STREAMFLOW_MEAS.AV_STREAMFLOW_MEAS;
+        return dsl.select(
+                view.OFFICE_ID,
+                view.LOCATION_ID,
+                min(view.DATE_TIME_UTC).as(MIN_DATE).convertFrom(Timestamp::toInstant),
+                max(view.DATE_TIME_UTC).as(MAX_DATE).convertFrom(Timestamp::toInstant)
+            )
+            .from(view)
+            .where(Optional.ofNullable(officeIdMask)
+                .map(view.OFFICE_ID::eq)
+                .orElse(DSL.trueCondition()))
+            .groupBy(view.OFFICE_ID, view.LOCATION_ID)
+            .fetch()
+            .map(record -> new CwmsIdTimeExtentsEntry.Builder()
+                            .withId( new CwmsId.Builder()
+                                    .withOfficeId(record.get(view.OFFICE_ID))
+                                    .withName(record.get(view.LOCATION_ID))
+                                    .build())
+                    .withTimeExtents(new TimeExtents.Builder()
+                            .withEarliestTime(record.value3().atZone(ZoneId.of("UTC")))
+                            .withLatestTime(record.value4().atZone(ZoneId.of("UTC")))
+                            .build())
+                    .build());
+    }
+
+    private void verifyMeasurementsExists(Connection conn, String officeId, String locationId, String minNum, String maxNum) throws JsonProcessingException {
         List<Measurement> measurements = retrieveMeasurementsJooq(conn, officeId, locationId, UnitSystem.EN.toString(),
-                null, null, null, null, minNum, maxNum, null, null, null, null, OracleTypeMap.GMT_TIME_ZONE);
+                null, null, null, null, minNum, maxNum, null, null, null, null);
         if (measurements.isEmpty()) {
             throw new NotFoundException("Could not find measurements for " + locationId + " in office " + officeId + ".");
         }
+    }
+
+    static List<Measurement> fromDbXml(String xml) throws JsonProcessingException {
+        MeasurementsXmlDto xmlDto = XML_MAPPER.readValue(xml, MeasurementsXmlDto.class);
+        return convertMeasurementsFromXmlDto(xmlDto);
     }
 
     static String toDbXml(List<Measurement> measurements) throws JsonProcessingException {
@@ -246,6 +280,35 @@ public final class MeasurementDao extends JooqDao<Measurement> {
                 .withSupplementalStreamflowMeasurement(meas.getSupplementalStreamflowMeasurement())
                 .withUsgsMeasurement(meas.getUsgsMeasurement())
                 .withWmComments(meas.getWmComments())
+                .build();
+    }
+
+    private static List<Measurement> convertMeasurementsFromXmlDto(MeasurementsXmlDto xmlDto) {
+        return xmlDto.getMeasurements().stream()
+                .map(MeasurementDao::convertMeasurementFromXmlDto)
+                .collect(toList());
+    }
+
+    static Measurement convertMeasurementFromXmlDto(MeasurementXmlDto dto) {
+        return new Measurement.Builder()
+                .withAgency(dto.getAgency())
+                .withAreaUnit(dto.getAreaUnit())
+                .withFlowUnit(dto.getFlowUnit())
+                .withHeightUnit(dto.getHeightUnit())
+                .withInstant(dto.getInstant())
+                .withId(new CwmsId.Builder()
+                        .withName(dto.getLocationId())
+                        .withOfficeId(dto.getOfficeId())
+                        .build())
+                .withNumber(dto.getNumber())
+                .withParty(dto.getParty())
+                .withTempUnit(dto.getTempUnit())
+                .withUsed(dto.isUsed())
+                .withVelocityUnit(dto.getVelocityUnit())
+                .withStreamflowMeasurement(dto.getStreamflowMeasurement())
+                .withSupplementalStreamflowMeasurement(dto.getSupplementalStreamflowMeasurement())
+                .withUsgsMeasurement(dto.getUsgsMeasurement())
+                .withWmComments(dto.getWmComments())
                 .build();
     }
 

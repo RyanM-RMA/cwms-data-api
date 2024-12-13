@@ -18,7 +18,7 @@
     "streamflow-measurement": {
       "gage-height": 5.5,
       "flow": 250.0,
-      "quality": "G"
+      "quality": "Good"
     },
     "supplemental-streamflow-measurement": {
       "channel-flow": 300.0,
@@ -67,7 +67,7 @@
     "streamflow-measurement": {
       "gage-height": 6.0,
       "flow": 275.0,
-      "quality": "F"
+      "quality": "Fair"
     },
     "supplemental-streamflow-measurement": {
       "channel-flow": 320.0,

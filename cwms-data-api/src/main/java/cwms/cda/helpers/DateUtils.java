@@ -1,6 +1,7 @@
 package cwms.cda.helpers;
 
 import com.google.common.flogger.FluentLogger;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -170,5 +171,13 @@ public class DateUtils {
     private static ZonedDateTime parseUserDuration(String text, ZonedDateTime now) {
         Duration duration = Duration.parse(text);
         return now.plus(duration);
+    }
+
+    public static ZonedDateTime toZdt(final Timestamp time) {
+        if (time != null) {
+            return ZonedDateTime.ofInstant(time.toInstant(), ZoneId.of("UTC"));
+        } else {
+            return null;
+        }
     }
 }

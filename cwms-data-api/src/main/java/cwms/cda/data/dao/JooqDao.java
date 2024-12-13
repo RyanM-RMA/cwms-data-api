@@ -24,6 +24,8 @@
 
 package cwms.cda.data.dao;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import static org.jooq.SQLDialect.ORACLE;
 
 import com.google.common.flogger.FluentLogger;
@@ -126,6 +128,10 @@ public abstract class JooqDao<T> extends Dao<T> {
         retVal.configuration().set(new DefaultExecuteListenerProvider(listener));
 
         return retVal;
+    }
+
+    protected static Timestamp buildTimestamp(Instant date) {
+        return date != null ? Timestamp.from(date) : null;
     }
 
     public static DSLContext getDslContext(Connection connection, String officeId) {
