@@ -130,7 +130,7 @@ public abstract class JooqDao<T> extends Dao<T> {
         return retVal;
     }
 
-protected static Timestamp buildTimestamp(Instant date) {
+    protected static Timestamp buildTimestamp(Instant date) {
         return date != null ? Timestamp.from(date) : null;
     }
 
