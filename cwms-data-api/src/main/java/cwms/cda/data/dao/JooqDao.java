@@ -72,6 +72,8 @@ import usace.cwms.db.jooq.codegen.packages.CWMS_ENV_PACKAGE;
 public abstract class JooqDao<T> extends Dao<T> {
     protected static final int ORACLE_CURSOR_TYPE = -10;
     private static final FluentLogger logger = FluentLogger.forEnclosingClass();
+    public static final int DEFAULT_FETCH_SIZE = 1000;
+    public static final int DEFAULT_SMALL_FETCH_SIZE = 500;
 
     static ExecuteListener listener = new ExceptionWrappingListener();
     private static Pattern INVALID_OFFICE_ID = Pattern.compile(
